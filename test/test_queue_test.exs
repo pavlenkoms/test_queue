@@ -10,15 +10,19 @@ defmodule TestQueueTest do
         {:ok, {uuid, msg}} = TestQueue.get(que)
         send(pid, {id, {uuid, msg}})
         worker(pid, id, que)
+
       {:make_ack, uuid} ->
         :ok = TestQueue.ack(que, uuid)
         send(pid, {id, :acked})
         worker(pid, id, que)
+
       {:make_reject, uuid} ->
         :ok = TestQueue.reject(que, uuid)
         send(pid, {id, :rejected})
         worker(pid, id, que)
-      :stop -> :ok
+
+      :stop ->
+        :ok
     end
   end
 
@@ -56,7 +60,6 @@ defmodule TestQueueTest do
     assert msg == :msg2
 
     :ok = TestQueue.ack(que, uuid)
-
 
     :ok = TestQueue.stop(que)
     [@folder, Atom.to_string(que_name)] |> Path.join() |> File.rm()
@@ -121,7 +124,6 @@ defmodule TestQueueTest do
 
     worker1 = spawn_link(fn -> worker(pid, :wrk1, que) end)
     worker2 = spawn_link(fn -> worker(pid, :wrk2, que) end)
-
 
     :ok = TestQueue.add(que, :msg1)
     :ok = TestQueue.add(que, :msg2)
@@ -262,5 +264,4 @@ defmodule TestQueueTest do
     :ok = TestQueue.stop(que)
     [@folder, Atom.to_string(que_name)] |> Path.join() |> File.rm()
   end
-
 end

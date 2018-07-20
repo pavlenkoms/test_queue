@@ -4,10 +4,8 @@ defmodule TestQueue.Core do
   alias :queue, as: Queue
   alias :timer, as: Timer
 
-
   @timeout Application.get_env(:test_queue, __MODULE__, 5000)[:timeout]
   @folder Application.get_env(:test_queue, __MODULE__, "dev_dets/")[:folder]
-
 
   def start_link(name) do
     case GenServer.start_link(__MODULE__, [name]) do
@@ -44,16 +42,19 @@ defmodule TestQueue.Core do
     GenServer.cast(self(), :go)
     File.mkdir_p!(@folder)
     filename = [@folder, Atom.to_string(name)] |> Path.join() |> String.to_charlist()
-    {:ok, queue_table} = Dets.open_file(name, [file: filename, ram_file: true, auto_save: :infinity])
+
+    {:ok, queue_table} =
+      Dets.open_file(name, file: filename, ram_file: true, auto_save: :infinity)
 
     {:ok, %{table: queue_table, queue: nil, client_queue: Queue.new()}}
   end
 
   def handle_cast(:go, %{table: table} = state) do
-    queue = case state.table |> Dets.lookup(:queue) do
-      [] -> Queue.new()
-      [{:queue, q}] -> q
-    end
+    queue =
+      case state.table |> Dets.lookup(:queue) do
+        [] -> Queue.new()
+        [{:queue, q}] -> q
+      end
 
     to_resurrect = Dets.foldl(&preprocess_table/2, [], table)
 
@@ -77,7 +78,6 @@ defmodule TestQueue.Core do
     with false <- Queue.is_empty(queue),
          {{:value, uuid}, queue} <- Queue.out(queue),
          [{uuid, msg}] <- Dets.lookup(table, uuid) do
-
       {:ok, ref} = Timer.send_after(@timeout, {:timeout, uuid})
 
       msg =
@@ -96,6 +96,7 @@ defmodule TestQueue.Core do
         client_queue = state.client_queue
         client_queue = Queue.in(from, client_queue)
         {:noreply, %{state | client_queue: client_queue}}
+
       [] ->
         # непонятный айдишник в очереди. Дропаем, пробуем снова
         # TODO: log error
@@ -109,18 +110,23 @@ defmodule TestQueue.Core do
   end
 
   def handle_call({:add, message}, _, %{table: table} = state) do
-    uuid = UUID.uuid4() #Тащить экто ради одного ууида - показалось как то оверкилл
+    # Тащить экто ради одного ууида - показалось как то оверкилл
+    uuid = UUID.uuid4()
 
+    # не обернул в функцию
+    # что бы sync был явно виден
     state =
       case to_queue_or_client(uuid, message, state) do
-        {:to_queue, state} ->                          # не обернул в функцию
-          :ok = Dets.sync(table)                       # что бы sync был явно виден
+        {:to_queue, state} ->
+          :ok = Dets.sync(table)
           state
+
         {:to_client, client, state} ->
           :ok = Dets.sync(table)
           GenServer.reply(client, {:ok, {uuid, message}})
           state
       end
+
     {:reply, :ok, state}
   end
 
@@ -134,11 +140,13 @@ defmodule TestQueue.Core do
         :ok = Dets.sync(table)
 
         {:reply, :ok, state}
+
       [{_uuid, _msg}] ->
         # время покажет насколько нужно знать пользователю, что этот уид в системе есть
         # но под это действие он не подходит... Но у себя ошибочку сделаем отдельную
         # TODO: log error
         {:reply, {:error, :bad_uuid}, state}
+
       [] ->
         # TODO: log error
         {:reply, {:error, :bad_uuid}, state}
@@ -156,6 +164,7 @@ defmodule TestQueue.Core do
             {:to_queue, state} ->
               :ok = Dets.sync(table)
               state
+
             {:to_client, client, state} ->
               :ok = Dets.sync(table)
               GenServer.reply(client, {:ok, {uuid, message}})
@@ -163,11 +172,13 @@ defmodule TestQueue.Core do
           end
 
         {:reply, :ok, state}
+
       [{_uuid, _msg}] ->
         # время покажет насколько нужно знать пользователю, что этот уид в системе есть
         # но под это действие он не подходит... Но у себя ошибочку сделаем отдельную
         # TODO: log error
         {:reply, {:error, :bad_uuid}, state}
+
       [] ->
         # TODO: log error
         {:reply, {:error, :bad_uuid}, state}
@@ -190,6 +201,7 @@ defmodule TestQueue.Core do
             {:to_queue, state} ->
               :ok = Dets.sync(table)
               state
+
             {:to_client, client, state} ->
               :ok = Dets.sync(table)
               GenServer.reply(client, {:ok, {uuid, message}})
@@ -197,6 +209,7 @@ defmodule TestQueue.Core do
           end
 
         {:noreply, state}
+
       [] ->
         # TODO: log error
         {:noreply, state}

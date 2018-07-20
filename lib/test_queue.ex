@@ -37,5 +37,4 @@ defmodule TestQueue do
   def stop(queue) do
     Core.stop(queue)
   end
-
 end
