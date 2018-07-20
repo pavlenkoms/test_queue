@@ -1,21 +1,25 @@
 # TestQueue
 
-**TODO: Add description**
+**Что делать?**
 
-## Installation
+Качаем с гита
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `test_queue` to your list of dependencies in `mix.exs`:
+делаем `mix deps.get && iex -S mix`
 
-```elixir
-def deps do
-  [
-    {:test_queue, "~> 0.1.0"}
-  ]
-end
-```
+**Что там есть?**
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/test_queue](https://hexdocs.pm/test_queue).
+`TestQueue.create/1` - для старта очереди
 
+`TestQueue.add/2` - для покладки сообщения в очередь
+
+`TestQueue.get/2` - для получения сообщения из очереди
+
+`TestQueue.ack/2` - что бы подтвердить обработку
+
+`TestQueue.reject/2` - вернуть сообщение обратно в очередь
+
+а так же
+
+`TestQueue.drop/1` - опустошить очередь
+
+`TestQueue.stop/1` - остановить работу очереди
